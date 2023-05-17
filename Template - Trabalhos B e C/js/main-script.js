@@ -1,9 +1,20 @@
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-var cameras=[],cameraX,cameraY,cameraZ,perspectiveCamera,orthographicCamera, scene, renderer;
+var cameras = [],
+  cameraX,
+  cameraY,
+  cameraZ,
+  perspectiveCamera,
+  orthographicCamera,
+  scene,
+  renderer;
 
-var geometry, material=[], mesh;
+var trailer, robot, pernas, bracoDir, bracoEsq, cabeca;
+
+var geometry,
+  material = [],
+  mesh;
 
 var keys = {};
 
@@ -20,7 +31,7 @@ function createScene() {
   scene.add(new THREE.AxisHelper(10));
   scene.background = new THREE.Color(0xa9f5ee);
 
-  CreateTrailer(0, 1, 0);
+  CreateTrailer(0, 0, 0);
 }
 
 //////////////////////
@@ -28,50 +39,69 @@ function createScene() {
 //////////////////////
 function createCamera() {
   "use strict";
-  perspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  perspectiveCamera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
   perspectiveCamera.position.set(20, 20, 20);
   perspectiveCamera.lookAt(scene.position);
 
   // Create an orthographic camera
   orthographicCamera = new THREE.OrthographicCamera(
-    window.innerWidth / -2,
-    window.innerWidth / 2,
-    window.innerHeight / 2,
-    window.innerHeight / -2,
+    window.innerWidth / -20,
+    window.innerWidth / 20,
+    window.innerHeight / 20,
+    window.innerHeight / -20,
     1,
     40
   );
-  orthographicCamera.position.set(0, 0, 5);
+  orthographicCamera.position.set(20, 20, 20);
   orthographicCamera.lookAt(scene.position);
 
   // Create a camera aligned with the X axis
-  cameraX = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  cameraX.position.set(15, 0, 0);
+  cameraX = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  cameraX.position.set(20, 0, 0);
   cameraX.lookAt(new THREE.Vector3(0, 0, 0));
 
   // Create a camera aligned with the Y axis
-  cameraY = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  cameraY.position.set(0, 15, 0);
+  cameraY = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  cameraY.position.set(0, 20, 0);
   cameraY.lookAt(new THREE.Vector3(0, 0, 0));
 
   // Create a camera aligned with the Z axis
-  cameraZ = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  cameraZ.position.set(0, 0, 15);
+  cameraZ = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  cameraZ.position.set(0, 0, 30);
   cameraZ.lookAt(new THREE.Vector3(0, 0, 0));
 
-  cameras.push(perspectiveCamera);
-  cameras.push(orthographicCamera);
-  cameras.push(cameraX);
-  cameras.push(cameraY);
   cameras.push(cameraZ);
+  cameras.push(cameraY);
+  cameras.push(cameraX);
+  cameras.push(orthographicCamera);
+  cameras.push(perspectiveCamera);
 
   scene.add(perspectiveCamera);
   scene.add(orthographicCamera);
   scene.add(cameraX);
   scene.add(cameraY);
   scene.add(cameraZ);
-
-  }
+}
 
 /////////////////////
 /* CREATE LIGHT(S) */
@@ -81,7 +111,7 @@ function createCamera() {
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 function addBox(obj, x, y, z) {
-  geometry = new THREE.BoxGeometry(2, 2, 6);
+  geometry = new THREE.BoxGeometry(5, 5, 13);
   mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   obj.add(mesh);
@@ -89,9 +119,17 @@ function addBox(obj, x, y, z) {
 
 function addWheel(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(1, 1, 1, 32);
-  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: false });
+  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
   mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.z += Math.PI / 2;
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addConnector(obj, x, y, z) {
+  geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
+  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
@@ -99,13 +137,16 @@ function addWheel(obj, x, y, z) {
 function CreateTrailer(x, y, z) {
   "use strict";
 
-  var trailer = new THREE.Object3D();
+  trailer = new THREE.Object3D();
 
-  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: false });
+  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
 
-  addBox(trailer, 0, 2, 3);
-  addWheel(trailer, 0, 0, 4);
-  //addConnector(trailer);
+  addBox(trailer, 0, 4.5, 6.5);
+  addWheel(trailer, 2, 1, 11);
+  addWheel(trailer, 2, 1, 8.75);
+  addWheel(trailer, -2, 1, 8.75);
+  addWheel(trailer, -2, 1, 11);
+  addConnector(trailer, 0, 1.75, 3);
 
   scene.add(trailer);
 
@@ -184,7 +225,7 @@ function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   if (window.innerHeight > 0 && window.innerWidth > 0) {
-    for (var i = 0; i < cameras.length; i++){
+    for (var i = 0; i < cameras.length; i++) {
       cameras[i].aspect = window.innerWidth / window.innerHeight;
       cameras[i].updateProjectionMatrix();
     }
