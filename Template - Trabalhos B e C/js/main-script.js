@@ -10,13 +10,27 @@ var cameras = [],
   scene,
   renderer;
 
-var trailer, robot, pernas, bracoDir, bracoEsq, cabeca;
+var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco;
+
+var angcab = Math.PI / 8,
+  maxRotationX = Math.PI / 2,
+  minRotationX = -Math.PI / 2;
+(rotcabfrente = false), (rotcabtras = false);
 
 var geometry,
   material = [],
   mesh;
 
 var keys = {};
+
+var direita = false,
+  esquerda = false,
+  frente = false,
+  tras = false;
+
+var vel = 1,
+  trailer_x,
+  trailer_z;
 
 var camera_index;
 
@@ -31,7 +45,8 @@ function createScene() {
   scene.add(new THREE.AxisHelper(10));
   scene.background = new THREE.Color(0xa9f5ee);
 
-  CreateTrailer(0, 0, 0);
+  CreateRobo(0, 0, 0);
+  CreateTrailer(0, 0, 5);
 }
 
 //////////////////////
@@ -67,7 +82,7 @@ function createCamera() {
     0.1,
     1000
   );
-  cameraX.position.set(20, 0, 0);
+  cameraX.position.set(-20, 0, 0);
   cameraX.lookAt(new THREE.Vector3(0, 0, 0));
 
   // Create a camera aligned with the Y axis
@@ -87,7 +102,7 @@ function createCamera() {
     0.1,
     1000
   );
-  cameraZ.position.set(0, 0, 30);
+  cameraZ.position.set(0, 0, -30);
   cameraZ.lookAt(new THREE.Vector3(0, 0, 0));
 
   cameras.push(cameraZ);
@@ -155,6 +170,80 @@ function CreateTrailer(x, y, z) {
   trailer.position.z = z;
 }
 
+function addTronco(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(8, 3, 4);
+  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addAbdomen(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(4, 2, 4);
+  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addCintura(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(4.5, 1, 3);
+  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addTorco(obj, x, y, z) {
+  torco = new THREE.Group();
+
+  addTronco(torco, 0, 5.5, 0);
+  addAbdomen(torco, 0, 3, 0);
+  addCintura(torco, 0, 1.5, 0);
+  addWheel(torco, 2.75, 1, 0);
+  addWheel(torco, -2.75, 1, 0);
+  torco.position.set(x, y, z);
+
+  obj.add(torco);
+}
+
+function addcranio(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(2, 2, 2);
+  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addCabeca(obj, x, y, z) {
+  cabeca = new THREE.Group();
+
+  addcranio(cabeca, 0, 1, -1);
+  cabeca.position.set(x, y, z);
+  obj.add(cabeca);
+}
+
+function CreateRobo(x, y, z) {
+  "use strict";
+
+  robot = new THREE.Object3D();
+
+  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+
+  addTorco(robot, 0, 0, 0);
+  addCabeca(robot, 0, 7, 2);
+  /*
+  addPernas
+  addCabeca
+  addBracoDir
+  addBracoEsq
+  */
+  scene.add(robot);
+  robot.position.x = x;
+  robot.position.y = y;
+  robot.position.z = z;
+}
+
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
@@ -174,6 +263,46 @@ function handleCollisions() {
 ////////////
 function update() {
   "use strict";
+  if (direita == true || esquerda == true || frente == true || tras == true) {
+    trailer_x = 0;
+    trailer_z = 0;
+
+    if (direita == true) {
+      trailer_x += 0.1;
+      direita = false;
+    }
+
+    if (esquerda == true) {
+      trailer_x -= 0.1;
+      esquerda = false;
+    }
+
+    if (frente == true) {
+      trailer_z += 0.1;
+      frente = false;
+    }
+
+    if (tras == true) {
+      trailer_z -= 0.1;
+      tras = false;
+    }
+
+    if (trailer_x != 0 && trailer_z != 0) {
+      trailer.position.x += trailer_x * (Math.sqrt(2) / 2);
+      trailer.position.z += trailer_z * (Math.sqrt(2) / 2);
+    } else {
+      trailer.position.x += trailer_x * vel;
+      trailer.position.z += trailer_z * vel;
+    }
+  } else if (rotcabfrente == true || rotcabtras == true) {
+    if (rotcabfrente == true && cabeca.rotation.x > minRotationX) {
+      cabeca.rotation.x -= angcab;
+      rotcabfrente = false;
+    } else if (rotcabtras == true && cabeca.rotation.x < maxRotationX) {
+      cabeca.rotation.x += angcab;
+      rotcabtras = false;
+    }
+  }
 }
 
 /////////////
@@ -197,7 +326,7 @@ function init() {
 
   createScene();
   createCamera();
-  camera_index = 0;
+  camera_index = 4;
 
   render(cameras[camera_index]);
 
@@ -211,6 +340,7 @@ function init() {
 /////////////////////
 function animate() {
   "use strict";
+  update();
   render(cameras[camera_index]);
 
   requestAnimationFrame(animate);
@@ -240,71 +370,39 @@ function onKeyDown() {
   //-------trailer movement-------
   switch (true) {
     case keys[38] && keys[39]: //ArrowUp and ArrowRight
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.z += 0.1;
-          node.position.x += 0.1;
-        }
-      });
+      frente = true;
+      direita = true;
       break;
 
     case keys[38] && keys[37]: //ArrowUp and ArrowLeft
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.z += 0.1;
-          node.position.x -= 0.1;
-        }
-      });
+      frente = true;
+      esquerda = true;
       break;
 
     case keys[40] && keys[39]: //ArrowDown and ArrowRight
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.z -= 0.1;
-          node.position.x += 0.1;
-        }
-      });
+      tras = true;
+      direita = true;
       break;
 
     case keys[40] && keys[37]: //ArrowDown and ArrowLeft
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.z -= 0.1;
-          node.position.x -= 0.1;
-        }
-      });
+      tras = true;
+      esquerda = true;
       break;
 
     case keys[37]: //ArrowLeft
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.x -= 0.1;
-        }
-      });
+      esquerda = true;
       break;
 
     case keys[39]: //ArrowRight
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.x += 0.1;
-        }
-      });
+      direita = true;
       break;
 
     case keys[40]: //ArrowDown
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.z -= 0.1;
-        }
-      });
+      tras = true;
       break;
 
     case keys[38]: //ArrowUp
-      scene.traverse(function (node) {
-        if (node instanceof THREE.Mesh) {
-          node.position.z += 0.1;
-        }
-      });
+      frente = true;
       break;
 
     //-------camera-------
@@ -326,6 +424,16 @@ function onKeyDown() {
 
     case keys[53]: //Digit5
       camera_index = 4;
+      break;
+    //-----rotation----------
+    case keys[82]:
+    case keys[104]: //R(r)
+      rotcabfrente = true;
+      break;
+
+    case keys[70]:
+    case keys[92]: //F(f)
+      rotcabtras = true;
       break;
   }
 }
