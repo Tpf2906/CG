@@ -10,13 +10,15 @@ var cameras = [],
   scene,
   renderer;
 
-var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco;
+var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna;
 
 var angcab = Math.PI / 8,
-  maxRotationX = Math.PI / 2,
-  minRotationX = -Math.PI / 2,
-  maxCoord = 5,
-  minCoord = 3;
+  maxRotationCabX = Math.PI / 2,
+  minRotationCabX = 0,
+  maxRotationPernaX = Math.PI / 4,
+  minRotationPernaX = -Math.PI / 2,
+  maxCoord = 4.9,
+  minCoord = 3.1;
 
 var materialred = new THREE.MeshBasicMaterial({
   color: 0xff0000,
@@ -34,9 +36,10 @@ var materialblue = new THREE.MeshBasicMaterial({
 var wirestate = false;
 
 var rotcabfrente = false,
-  rotcabtras = false;
-
-var latBraco = false,
+  rotpernafrente = false,
+  rotpernatras = false,
+  rotcabtras = false,
+  latBraco = false,
   medBraco = false;
 
 var geometry,
@@ -274,8 +277,65 @@ function addBracoESq(obj, x, y, z) {
   addBraco(bracoEsq, 0, 0.5, 3);
   addAntebraco(bracoEsq, 0, -2, 1);
   addEscape(bracoEsq, 1.25, 1, 3);
+
   bracoEsq.position.set(x, y, z);
   obj.add(bracoEsq);
+}
+
+function addCoxas(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(1, 2, 1);
+  mesh = new THREE.Mesh(geometry, materialred);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addCanela(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(2, 5, 1.5);
+  mesh = new THREE.Mesh(geometry, materialblue);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addPernaDir(obj, x, y, z) {
+  perna = new THREE.Group();
+
+  addCoxas(perna, 0, -1, 0);
+  addCanela(perna, 0, -4.5, 0);
+  addWheel(perna, x + 0.25, -3.75, 0);
+  addWheel(perna, x + 0.25, -6, 0);
+  /*
+  addCoxas
+  addcanela
+  addwhell
+  */
+  perna.position.set(x, y, z);
+  obj.add(perna);
+}
+
+function addPernaEsq(obj, x, y, z) {
+  perna = new THREE.Group();
+
+  addCoxas(perna, 0, -1, 0);
+  addCanela(perna, 0, -4.5, 0);
+  addWheel(perna, x - 0.25, -3.75, 0);
+  addWheel(perna, x - 0.25, -6, 0);
+  /*
+  addCoxas
+  addcanela
+  addwhell
+  */
+  perna.position.set(x, y, z);
+  obj.add(perna);
+}
+
+function addPernas(obj, x, y, z) {
+  pernas = new THREE.Group();
+
+  addPernaDir(pernas, 1.5, 0, 0);
+  addPernaEsq(pernas, -1.5, 0, 0);
+
+  pernas.position.set(x, y, z);
+  obj.add(pernas);
 }
 
 function CreateRobo(x, y, z) {
@@ -287,15 +347,10 @@ function CreateRobo(x, y, z) {
   addCabeca(robot, 0, 7, -1);
   addBracoDir(robot, -5, 5, -1);
   addBracoESq(robot, 5, 5, -1);
-  /*
-  addPernas
-  addBracoDir
-  addBracoEsq
-  */
+  addPernas(robot, 0, 1, 0);
+
   scene.add(robot);
-  robot.position.x = x;
-  robot.position.y = y;
-  robot.position.z = z;
+  robot.position.set(x, y, z);
 }
 
 //////////////////////
@@ -349,28 +404,38 @@ function update() {
       trailer.position.z += trailer_z * vel;
     }
   } else if (rotcabfrente == true || rotcabtras == true) {
-    if (rotcabfrente == true && cabeca.rotation.x > minRotationX) {
+    if (rotcabfrente == true && cabeca.rotation.x > minRotationCabX) {
       cabeca.rotation.x -= angcab;
-      rotcabfrente = false;
-    } else if (rotcabtras == true && cabeca.rotation.x < maxRotationX) {
+    } else if (rotcabtras == true && cabeca.rotation.x < maxRotationCabX) {
       cabeca.rotation.x += angcab;
-      rotcabtras = false;
     }
+    rotcabtras = false;
+    rotcabfrente = false;
   } else if (latBraco == true || medBraco == true) {
-    if (latBraco == true && bracoEsq.position.x < maxCoord) {
+    if (latBraco == true && bracoEsq.position.x <= maxCoord) {
       bracoDir.position.x -= 0.1;
       bracoEsq.position.x += 0.1;
-      latBraco = false;
-    } else if (medBraco == true && bracoEsq.position.x > minCoord) {
+    } else if (medBraco == true && bracoEsq.position.x >= minCoord) {
       bracoDir.position.x += 0.1;
       bracoEsq.position.x -= 0.1;
-      medBraco = false;
     }
+    latBraco = false;
+    medBraco = false;
   } else if (wirestate == true) {
     materialred.wireframe = !materialred.wireframe;
     materialblue.wireframe = !materialblue.wireframe;
     materialgreen.wireframe = !materialgreen.wireframe;
     wirestate = false;
+  } else if (rotpernafrente == true || rotpernatras == true) {
+    if (rotpernafrente == true && pernas.rotation.x > minRotationPernaX) {
+      pernas.rotation.x -= angcab;
+    } else if (rotpernatras == true && pernas.rotation.x < maxRotationPernaX) {
+      pernas.rotation.x += angcab;
+    }
+    rotpernafrente = false;
+    rotpernatras = false;
+  } else {
+    handleKeyUp;
   }
 }
 
@@ -507,6 +572,16 @@ function onKeyDown() {
     case keys[70]:
     case keys[92]: //F(f)
       rotcabtras = true;
+      break;
+
+    case keys[87]:
+    case keys[109]: //W(w)
+      rotpernafrente = true;
+      break;
+
+    case keys[83]:
+    case keys[105]: //S(s)
+      rotpernatras = true;
       break;
 
     case keys[68]:
