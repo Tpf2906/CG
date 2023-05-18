@@ -14,8 +14,30 @@ var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco;
 
 var angcab = Math.PI / 8,
   maxRotationX = Math.PI / 2,
-  minRotationX = -Math.PI / 2;
-(rotcabfrente = false), (rotcabtras = false);
+  minRotationX = -Math.PI / 2,
+  maxCoord = 5,
+  minCoord = 3;
+
+var materialred = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+  wireframe: true,
+});
+var materialgreen = new THREE.MeshBasicMaterial({
+  color: 0x00ff00,
+  wireframe: true,
+});
+var materialblue = new THREE.MeshBasicMaterial({
+  color: 0x0000ff,
+  wireframe: true,
+});
+
+var wirestate = false;
+
+var rotcabfrente = false,
+  rotcabtras = false;
+
+var latBraco = false,
+  medBraco = false;
 
 var geometry,
   material = [],
@@ -127,15 +149,14 @@ function createCamera() {
 ////////////////////////
 function addBox(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(5, 5, 13);
-  mesh = new THREE.Mesh(geometry, material);
+  mesh = new THREE.Mesh(geometry, materialgreen);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
 function addWheel(obj, x, y, z) {
-  geometry = new THREE.CylinderGeometry(1, 1, 1, 32);
-  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-  mesh = new THREE.Mesh(geometry, material);
+  geometry = new THREE.CylinderGeometry(1, 1, 1.5, 32);
+  mesh = new THREE.Mesh(geometry, materialred);
   mesh.rotation.z += Math.PI / 2;
   mesh.position.set(x, y, z);
   obj.add(mesh);
@@ -143,8 +164,7 @@ function addWheel(obj, x, y, z) {
 
 function addConnector(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
-  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-  mesh = new THREE.Mesh(geometry, material);
+  mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
@@ -153,9 +173,6 @@ function CreateTrailer(x, y, z) {
   "use strict";
 
   trailer = new THREE.Object3D();
-
-  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-
   addBox(trailer, 0, 4.5, 6.5);
   addWheel(trailer, 2, 1, 11);
   addWheel(trailer, 2, 1, 8.75);
@@ -171,25 +188,22 @@ function CreateTrailer(x, y, z) {
 }
 
 function addTronco(obj, x, y, z) {
-  geometry = new THREE.BoxGeometry(8, 3, 4);
-  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-  mesh = new THREE.Mesh(geometry, material);
+  geometry = new THREE.BoxGeometry(8, 3, 6);
+  mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
 function addAbdomen(obj, x, y, z) {
-  geometry = new THREE.BoxGeometry(4, 2, 4);
-  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-  mesh = new THREE.Mesh(geometry, material);
+  geometry = new THREE.BoxGeometry(4, 2, 6);
+  mesh = new THREE.Mesh(geometry, materialblue);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
 function addCintura(obj, x, y, z) {
-  geometry = new THREE.BoxGeometry(4.5, 1, 3);
-  material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-  mesh = new THREE.Mesh(geometry, material);
+  geometry = new THREE.BoxGeometry(4.5, 1, 6);
+  mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
@@ -200,8 +214,8 @@ function addTorco(obj, x, y, z) {
   addTronco(torco, 0, 5.5, 0);
   addAbdomen(torco, 0, 3, 0);
   addCintura(torco, 0, 1.5, 0);
-  addWheel(torco, 2.75, 1, 0);
-  addWheel(torco, -2.75, 1, 0);
+  addWheel(torco, 3, 1, 0);
+  addWheel(torco, -3, 1, 0);
   torco.position.set(x, y, z);
 
   obj.add(torco);
@@ -209,8 +223,7 @@ function addTorco(obj, x, y, z) {
 
 function addcranio(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(2, 2, 2);
-  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-  mesh = new THREE.Mesh(geometry, material);
+  mesh = new THREE.Mesh(geometry, materialgreen);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
@@ -218,9 +231,51 @@ function addcranio(obj, x, y, z) {
 function addCabeca(obj, x, y, z) {
   cabeca = new THREE.Group();
 
-  addcranio(cabeca, 0, 1, -1);
+  addcranio(cabeca, 0, 1, 1);
+  /*olhos e cornos */
   cabeca.position.set(x, y, z);
   obj.add(cabeca);
+}
+
+function addBraco(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(2, 3, 2);
+  mesh = new THREE.Mesh(geometry, materialblue);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addAntebraco(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(2, 2, 6);
+  mesh = new THREE.Mesh(geometry, materialgreen);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addEscape(obj, x, y, z) {
+  geometry = new THREE.CylinderGeometry(0.25, 0.25, 4, 32);
+  mesh = new THREE.Mesh(geometry, materialred);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addBracoDir(obj, x, y, z) {
+  bracoDir = new THREE.Group();
+
+  addBraco(bracoDir, 0, 0.5, 3);
+  addAntebraco(bracoDir, 0, -2, 1);
+  addEscape(bracoDir, -1.25, 1, 3);
+  bracoDir.position.set(x, y, z);
+  obj.add(bracoDir);
+}
+
+function addBracoESq(obj, x, y, z) {
+  bracoEsq = new THREE.Group();
+
+  addBraco(bracoEsq, 0, 0.5, 3);
+  addAntebraco(bracoEsq, 0, -2, 1);
+  addEscape(bracoEsq, 1.25, 1, 3);
+  bracoEsq.position.set(x, y, z);
+  obj.add(bracoEsq);
 }
 
 function CreateRobo(x, y, z) {
@@ -228,13 +283,12 @@ function CreateRobo(x, y, z) {
 
   robot = new THREE.Object3D();
 
-  material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-
   addTorco(robot, 0, 0, 0);
-  addCabeca(robot, 0, 7, 2);
+  addCabeca(robot, 0, 7, -1);
+  addBracoDir(robot, -5, 5, -1);
+  addBracoESq(robot, 5, 5, -1);
   /*
   addPernas
-  addCabeca
   addBracoDir
   addBracoEsq
   */
@@ -302,6 +356,21 @@ function update() {
       cabeca.rotation.x += angcab;
       rotcabtras = false;
     }
+  } else if (latBraco == true || medBraco == true) {
+    if (latBraco == true && bracoEsq.position.x < maxCoord) {
+      bracoDir.position.x -= 0.1;
+      bracoEsq.position.x += 0.1;
+      latBraco = false;
+    } else if (medBraco == true && bracoEsq.position.x > minCoord) {
+      bracoDir.position.x += 0.1;
+      bracoEsq.position.x -= 0.1;
+      medBraco = false;
+    }
+  } else if (wirestate == true) {
+    materialred.wireframe = !materialred.wireframe;
+    materialblue.wireframe = !materialblue.wireframe;
+    materialgreen.wireframe = !materialgreen.wireframe;
+    wirestate = false;
   }
 }
 
@@ -425,6 +494,10 @@ function onKeyDown() {
     case keys[53]: //Digit5
       camera_index = 4;
       break;
+
+    case keys[54]: //Digit6
+      wirestate = true;
+      break;
     //-----rotation----------
     case keys[82]:
     case keys[104]: //R(r)
@@ -434,6 +507,16 @@ function onKeyDown() {
     case keys[70]:
     case keys[92]: //F(f)
       rotcabtras = true;
+      break;
+
+    case keys[68]:
+    case keys[90]: //D(d)
+      latBraco = true;
+      break;
+
+    case keys[69]:
+    case keys[91]: //E(e)
+      medBraco = true;
       break;
   }
 }
