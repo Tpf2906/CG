@@ -10,7 +10,7 @@ var cameras = [],
   scene,
   renderer;
 
-var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna;
+var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna,pes;
 
 var angcab = Math.PI / 8,
   maxRotationCabX = Math.PI / 2,
@@ -30,6 +30,10 @@ var materialgreen = new THREE.MeshBasicMaterial({
 });
 var materialblue = new THREE.MeshBasicMaterial({
   color: 0x0000ff,
+  wireframe: true,
+});
+var materialblack = new THREE.MeshBasicMaterial({
+  color: 0x000000,
   wireframe: true,
 });
 
@@ -79,7 +83,9 @@ function createScene() {
 //////////////////////
 function createCamera() {
   "use strict";
-  perspectiveCamera = new THREE.PerspectiveCamera(
+  
+  // Create a perspective camera
+  const perspectiveCamera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
     0.1,
@@ -89,46 +95,52 @@ function createCamera() {
   perspectiveCamera.lookAt(scene.position);
 
   // Create an orthographic camera
-  orthographicCamera = new THREE.OrthographicCamera(
-    window.innerWidth / -20,
-    window.innerWidth / 20,
-    window.innerHeight / 20,
-    window.innerHeight / -20,
+  const orthographicCamera = new THREE.OrthographicCamera(
+    -30,
+    30,
+    30,
+    -30,
     1,
-    40
+    1000
   );
   orthographicCamera.position.set(20, 20, 20);
   orthographicCamera.lookAt(scene.position);
 
   // Create a camera aligned with the X axis
-  cameraX = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
+  const cameraX = new THREE.OrthographicCamera(
+    window.innerWidth / -40,
+    window.innerWidth / 40,
+    window.innerHeight / 40,
+    window.innerHeight / -40,
+    1,
     1000
   );
-  cameraX.position.set(-20, 0, 0);
-  cameraX.lookAt(new THREE.Vector3(0, 0, 0));
+  cameraX.position.set(30, 0, 0);
+  cameraX.lookAt(scene.position);
 
   // Create a camera aligned with the Y axis
-  cameraY = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
+  const cameraY = new THREE.OrthographicCamera(
+    window.innerWidth / -40,
+    window.innerWidth / 40,
+    window.innerHeight / -40,
+    window.innerHeight / 40,
+    1,
     1000
   );
-  cameraY.position.set(0, 20, 0);
-  cameraY.lookAt(new THREE.Vector3(0, 0, 0));
+  cameraY.position.set(0, 30, 0);
+  cameraY.lookAt(scene.position);
 
   // Create a camera aligned with the Z axis
-  cameraZ = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
+  const cameraZ = new THREE.OrthographicCamera(
+    window.innerWidth / -40,
+    window.innerWidth / 40,
+    window.innerHeight / 40,
+    window.innerHeight / -40,
+    1,
     1000
   );
-  cameraZ.position.set(0, 0, -30);
-  cameraZ.lookAt(new THREE.Vector3(0, 0, 0));
+  cameraZ.position.set(0, 0, 30);
+  cameraZ.lookAt(scene.position);
 
   cameras.push(cameraZ);
   cameras.push(cameraY);
@@ -159,7 +171,7 @@ function addBox(obj, x, y, z) {
 
 function addWheel(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(1, 1, 1.5, 32);
-  mesh = new THREE.Mesh(geometry, materialred);
+  mesh = new THREE.Mesh(geometry, materialblack);
   mesh.rotation.z += Math.PI / 2;
   mesh.position.set(x, y, z);
   obj.add(mesh);
@@ -301,6 +313,7 @@ function addPernaDir(obj, x, y, z) {
 
   addCoxas(perna, 0, -1, 0);
   addCanela(perna, 0, -4.5, 0);
+  addPes(perna, x-1.5, -7.5, -1);
   addWheel(perna, x + 0.25, -3.75, 0);
   addWheel(perna, x + 0.25, -6, 0);
   /*
@@ -317,8 +330,10 @@ function addPernaEsq(obj, x, y, z) {
 
   addCoxas(perna, 0, -1, 0);
   addCanela(perna, 0, -4.5, 0);
+  addPes(perna, x+1.5, -7.5, -1);
   addWheel(perna, x - 0.25, -3.75, 0);
   addWheel(perna, x - 0.25, -6, 0);
+  
   /*
   addCoxas
   addcanela
@@ -336,6 +351,14 @@ function addPernas(obj, x, y, z) {
 
   pernas.position.set(x, y, z);
   obj.add(pernas);
+}
+
+function addPes(obj,x,y,z){
+  geometry = new THREE.BoxGeometry(2, 1, 3);
+  mesh = new THREE.Mesh(geometry,materialgreen);
+  mesh.position.set(x,y,z);
+  obj.add(mesh);
+
 }
 
 function CreateRobo(x, y, z) {
@@ -425,6 +448,7 @@ function update() {
     materialred.wireframe = !materialred.wireframe;
     materialblue.wireframe = !materialblue.wireframe;
     materialgreen.wireframe = !materialgreen.wireframe;
+    materialblack.wireframe = !materialblack.wireframe;
     wirestate = false;
   } else if (rotpernafrente == true || rotpernatras == true) {
     if (rotpernafrente == true && pernas.rotation.x > minRotationPernaX) {
@@ -545,11 +569,11 @@ function onKeyDown() {
       break;
 
     case keys[50]: //Digit2
-      camera_index = 1;
+      camera_index = 2;
       break;
 
     case keys[51]: //Digit3
-      camera_index = 2;
+      camera_index = 1;
       break;
 
     case keys[52]: //Digit4
