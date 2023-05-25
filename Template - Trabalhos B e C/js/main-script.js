@@ -10,7 +10,7 @@ var trailer;
 var robot;
 var upperBody;
 var head;
-var righArm, leftArm;
+var rightArm, leftArm;
 var leg, legs, feet;
 
 var time, delta;
@@ -86,7 +86,7 @@ function createScene() {
   // Create the Robot at (0,0,0)
   createRobot(0, 0, 0);
   // Create the Trailer at (0,0,15)
-  //createTrailer(0, 0, 15);
+  createTrailer(0, 0, 15);
 }
 
 //////////////////////
@@ -501,9 +501,18 @@ function createRobot(x, y, z) {
 ////       ////
 
 function isCamiao() {
-  // if (head.rotation.x == maxRotationCabX &&
-  //     leftArm.position.x == minCoord &&
-  //     )
+
+  if (Math.abs(head.rotation.x - maxHeadRotation) < 0.1) {
+    if (Math.abs(rightArm.position.x - minCoord) < 0.1) {
+      if (Math.abs(legs.rotation.x - minLegRotation) < 0.1) {
+        if (Math.abs(feet.rotation.x - minFootRotation) < 0.1) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 //////////////////////
@@ -517,11 +526,11 @@ function checkCollisions() {
 
   // Centroide do Reboque
   const centroideReboque = new THREE.Vector3(trailer.position.x, 0,trailer.position.z);
-  console.log(trailer.children)
+  
 
   // Verificar se colidem em X
-  console.log(Math.abs(centroideCamiao.x - centroideReboque.x))
-  console.log(Math.abs(centroideCamiao.z - centroideReboque.z))
+  //console.log(Math.abs(centroideCamiao.x - centroideReboque.x))
+  //console.log(Math.abs(centroideCamiao.z - centroideReboque.z))
   if ((Math.abs(centroideCamiao.x - centroideReboque.x) <= 7) &&
       (Math.abs(centroideCamiao.z - centroideReboque.z) <= 12)) {
         lock = true;
@@ -543,15 +552,13 @@ function handleCollisions() {
 ////////////
 function update() {
   "use strict";
-  // Usar delta time do js nativo
-  /*
+  
   if (isCamiao()) {
     if (checkCollisions()) {
-      handleCollisions();
+      console.log("COLISAO")
     }
   }
-  console.log(checkCollisions())
-  */
+  
   // questao -> podemos usar Box3 ou temos que implementar as nossas AABB boxes?
   // "Custom" funcao para verificar colisoes
   // console.log(checkCollisions(trailerBox, robotBox));
@@ -619,7 +626,7 @@ function update() {
 
     armLat = false;
     armMed = false;
-    
+
   } else if (footForwardRotation == true || footBackRotation == true) {
 
     if (footForwardRotation == true && feet.rotation.x > minFootRotation) {
