@@ -15,7 +15,9 @@ var leg, legs, feet;
 
 var time, delta;
 
-var velRotation = Math.PI / 2,
+var reset = false;
+
+var velRotation = Math.PI / 4,
   maxHeadRotation = Math.PI / 2,
   minHeadRotation = 0,
   maxLegRotation = Math.PI / 4,
@@ -67,7 +69,13 @@ var moveRight = false,
     moveBack = false;
 
 var trailerVel = 7.5, trailer_x = 0, trailer_z = 0;
-var velArm = 5;
+var velArm = 3;
+
+// Centroide do Camiao
+const centroideCamiao = new THREE.Vector3(0, 0, 2.5);
+
+// Centroide do Reboque
+var centroideReboque;
 
 
 /////////////////////
@@ -86,7 +94,7 @@ function createScene() {
   // Create the Robot at (0,0,0)
   createRobot(0, 0, 0);
   // Create the Trailer at (0,0,15)
-  createTrailer(0, 0, 15);
+  createTrailer(0, -0.9, 15);
 }
 
 //////////////////////
@@ -201,7 +209,7 @@ function addWheel(obj, x, y, z) {
 ////         ////
 
 function addTrailerBox(obj, x, y, z) {
-  geometry = new THREE.BoxGeometry(5, 5, 13);
+  geometry = new THREE.BoxGeometry(8, 5, 13);
   mesh = new THREE.Mesh(geometry, materialgreen);
   mesh.position.set(x, y, z);
   obj.add(mesh);
@@ -222,13 +230,13 @@ function createTrailer(x, y, z) {
   addTrailerBox(trailer, 0, 0, 0);
 
   // Rodas de Tras
-  addWheel(trailer,  1.75, -3.5,  4.5);
-  addWheel(trailer, -1.75, -3.5,  4.5);
+  addWheel(trailer,  3, -3.5,  4.5);
+  addWheel(trailer, -3, -3.5,  4.5);
   // Rodas da Frente
-  addWheel(trailer,  1.75, -3.5, 2.25);
-  addWheel(trailer, -1.75, -3.5, 2.25);
+  addWheel(trailer,  3, -3.5, 2.25);
+  addWheel(trailer, -3, -3.5, 2.25);
 
-  addTrailerConnector(trailer, 0, -2.75, -3.5);
+  addTrailerConnector(trailer, 0, -2.75, -4.5);
 
   trailer.position.set(x, y, z);
   
@@ -521,16 +529,11 @@ function isCamiao() {
 function checkCollisions() {
   "use strict";
 
-  // Centroide do Camiao
-  const centroideCamiao = new THREE.Vector3(0, 0, 2.5);
-
   // Centroide do Reboque
-  const centroideReboque = new THREE.Vector3(trailer.position.x, 0,trailer.position.z);
+  centroideReboque = new THREE.Vector3(trailer.position.x, 0,trailer.position.z);
   
 
   // Verificar se colidem em X
-  //console.log(Math.abs(centroideCamiao.x - centroideReboque.x))
-  //console.log(Math.abs(centroideCamiao.z - centroideReboque.z))
   if ((Math.abs(centroideCamiao.x - centroideReboque.x) <= 7) &&
       (Math.abs(centroideCamiao.z - centroideReboque.z) <= 12)) {
         lock = true;
@@ -545,6 +548,19 @@ function checkCollisions() {
 ///////////////////////
 function handleCollisions() {
   "use strict";
+
+  var posFinal = new THREE.Vector3(0, 0, 10);
+
+  var deltaX = posFinal.x - centroideReboque.x;
+  var deltaZ = posFinal.z - centroideReboque.z;
+  
+  if (Math.abs(deltaX) < 0.01 && Math.abs(deltaZ) < 0.01) {
+    return;
+  }
+
+  trailer.position.x += deltaX * delta;
+  trailer.position.z += deltaZ * delta;
+
 }
 
 ////////////
@@ -555,19 +571,9 @@ function update() {
   
   if (isCamiao()) {
     if (checkCollisions()) {
-      console.log("COLISAO")
+      handleCollisions();
     }
   }
-  
-  // questao -> podemos usar Box3 ou temos que implementar as nossas AABB boxes?
-  // "Custom" funcao para verificar colisoes
-  // console.log(checkCollisions(trailerBox, robotBox));
-  // Verifica se há colisão mas só o deve fazer quando o Robot está em modo Camião
-  // Boolean que verica se as pecas todas do robot estao para dentro?
-  // Quando detetamos a colisao calculamos a diferenca entre a posicao do centro do trailer e a posicao onde tem que ficar no fim da
-  // animacao e depois em cada ciclo do update mudamos a posicao do trailer e retornamos logo para nao podermos mexer em nada
-  // isto acontece ate chegarmos a posicao que queremos
-  
   
   if ((moveRight || moveLeft || moveForward || moveBack) && !lock) {
 
@@ -655,14 +661,14 @@ function update() {
     legForwardRotation = false;
     legBackRotation = false;
 
+  } else if (reset) {
+    trailer.position.set(0, 0, 15);
+    lock = false;
+    reset = false;
   } else {
     handleKeyUp;
   }
 
-  
-  
-  //robotBox.setFromObject(robot)
-  //trailerBox.setFromObject(trailer)
 }
 
 /////////////
@@ -686,7 +692,7 @@ function init() {
 
   createScene();
   createCamera();
-  camera_index = 1;
+  camera_index = 4;
 
   render(cameras[camera_index]);
 
@@ -737,7 +743,6 @@ function onKeyDown() {
 
   switch (true) {
     //-------TRAILER MOVEMENT-------//
-    // 3 KEYS PRESSED
     case keys[38] && keys[39]: //ArrowUp and ArrowRight
       moveForward = true;
       moveRight = true;
@@ -798,6 +803,9 @@ function onKeyDown() {
     case keys[54]: //Digit6
       wirestate = true;
       break;
+    case keys[55]: //Digit7
+      reset = true;
+      break;
     //-----rotation----------
     case keys[82]: //R(r)
       headForwardRotation = true;
@@ -844,18 +852,3 @@ function handleKeyUp(event) {
   keys[keyCode] = false;
   onKeyDown();
 }
-
-/*
- Centroide Camiao (0, 0, 2.5)
-
-Tamanho 4.5 -> x
-        5.5 -> z
-
-
-  Centroide do Reboque (trailer.position.x, 0, trailer.position.y)
-
-  tamanho x -> 2.5
-          z -> 6.5
-
-
-*/
