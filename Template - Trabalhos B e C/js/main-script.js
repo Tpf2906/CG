@@ -10,7 +10,7 @@ var cameras = [],
   scene,
   renderer;
 
-var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna,pesesq,pesdir;
+var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna,pesesq,pesdir, pes, box;
 
 var angcab = Math.PI / 16,
   maxRotationCabX = Math.PI / 2,
@@ -21,6 +21,8 @@ var angcab = Math.PI / 16,
   maxRotationPesX = 0
   maxCoord = 4.9,
   minCoord = 3.1;
+
+var lock = false;
 
 var robotBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 var trailerBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -87,7 +89,7 @@ function createScene() {
   scene.background = new THREE.Color(0xa9f5ee);
 
   CreateRobo(0, 0, 0);
-  CreateTrailer(0, 0, 5);
+  CreateTrailer(0, 0, 15);
 }
 
 //////////////////////
@@ -177,9 +179,10 @@ function createCamera() {
 ////////////////////////
 function addBox(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(5, 5, 13);
-  mesh = new THREE.Mesh(geometry, materialgreen);
-  mesh.position.set(x, y, z);
-  obj.add(mesh);
+  box = new THREE.Mesh(geometry, materialgreen);
+  box.position.set(x, y, z);
+  box.name = "box"
+  obj.add(box);
 }
 
 function addWheel(obj, x, y, z) {
@@ -201,12 +204,12 @@ function CreateTrailer(x, y, z) {
   "use strict";
 
   trailer = new THREE.Object3D();
-  addBox(trailer, 0, 4.5, 6.5);
-  addWheel(trailer, 2, 1, 11);
-  addWheel(trailer, 2, 1, 8.75);
-  addWheel(trailer, -2, 1, 8.75);
-  addWheel(trailer, -2, 1, 11);
-  addConnector(trailer, 0, 1.75, 3);
+  addBox(trailer, 0, 4.5, 0);
+  addWheel(trailer, 2, 1, 4.5);
+  addWheel(trailer, 2, 1, 2.25);
+  addWheel(trailer, -2, 1, 2.25);
+  addWheel(trailer, -2, 1, 4.5);
+  addConnector(trailer, 0, 1.75, -3.5);
 
   scene.add(trailer);
 
@@ -257,7 +260,7 @@ function addcranio(obj, x, y, z) {
 }
 
 function addOlho(obj, x, y, z) {
-  geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
+  geometry = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
   material = new THREE.MeshBasicMaterial(materialblue);
   mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x += Math.PI / 2;
@@ -346,9 +349,9 @@ function addPernaDir(obj, x, y, z) {
 
   addCoxas(perna, 0, -1, 0);
   addCanela(perna, 0, -4.5, 0);
-  addPesDir(perna, x-1.5, -7.5, 0);
-  addWheel(perna, x + 0.25, -3.75, 0);
-  addWheel(perna, x + 0.25, -6, 0);
+  //addPesDir(perna, -3, -7.5, 0);
+  addWheel(perna, 1.75, -3.75, 0);
+  addWheel(perna, 1.75, -6, 0);
   /*
   addCoxas
   addcanela
@@ -363,9 +366,9 @@ function addPernaEsq(obj, x, y, z) {
 
   addCoxas(perna, 0, -1, 0);
   addCanela(perna, 0, -4.5, 0);
-  addPesEsq(perna, x+1.5, -7.5, 0);
-  addWheel(perna, x - 0.25, -3.75, 0);
-  addWheel(perna, x - 0.25, -6, 0);
+  //addPesEsq(perna, 3, -7.5, 0);
+  addWheel(perna, -1.75, -3.75, 0);
+  addWheel(perna, -1.75, -6, 0);
   
   /*
   addCoxas
@@ -376,12 +379,23 @@ function addPernaEsq(obj, x, y, z) {
   obj.add(perna);
 }
 
+function addPes(obj, x, y, z) {
+  pes = new THREE.Group();
+
+  addPesDir(pes, 1.5, -0.5, 0);
+  addPesEsq(pes, -1.5, -0.5, 0);
+
+  pes.position.set(x, y, z);
+  obj.add(pes);
+}
+
 function addPernas(obj, x, y, z) {
   pernas = new THREE.Group();
+  
 
   addPernaDir(pernas, 1.5, 0, 0);
   addPernaEsq(pernas, -1.5, 0, 0);
-
+  addPes(pernas, 0, -7, -0.25);
   pernas.position.set(x, y, z);
   obj.add(pernas);
 }
@@ -410,23 +424,42 @@ function CreateRobo(x, y, z) {
   addBracoDir(robot, -5, 5, -1);
   addBracoESq(robot, 5, 5, -1);
   addPernas(robot, 0, 1, 0);
+  
 
   scene.add(robot);
   robot.position.set(x, y, z);
   robotBox.setFromObject(robot)
 }
 
+function isCamiao() {
+  // if (cabeca.rotation.x == maxRotationCabX &&
+  //     bracoEsq.position.x == minCoord &&
+  //     )
+}
+
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions(box, otherBox) {
+function checkCollisions() {
   "use strict";
 
-  // Doesn't check the y because objects don't move in the y direction.
-  return (
-    box.min.x <= otherBox.max.x && box.max.x >= otherBox.min.x &&
-    box.min.z <= otherBox.max.z && box.max.z >= otherBox.min.z
-    );
+  // Centroide do Camiao
+  const centroideCamiao = new THREE.Vector3(0, 0, 2.5);
+
+  // Centroide do Reboque
+  const centroideReboque = new THREE.Vector3(trailer.position.x, 0,trailer.position.z);
+  console.log(trailer.children)
+
+  // Verificar se colidem em X
+  console.log(Math.abs(centroideCamiao.x - centroideReboque.x))
+  console.log(Math.abs(centroideCamiao.z - centroideReboque.z))
+  if ((Math.abs(centroideCamiao.x - centroideReboque.x) <= 7) &&
+      (Math.abs(centroideCamiao.z - centroideReboque.z) <= 12)) {
+        lock = true;
+        return true;
+  }
+  return false;
+
 }
 
 ///////////////////////
@@ -441,6 +474,14 @@ function handleCollisions() {
 ////////////
 function update() {
   "use strict";
+  // Usar delta time do js nativo
+
+  if (isCamiao()) {
+    if (checkCollisions()) {
+      handleCollisions();
+    }
+  }
+  console.log(checkCollisions())
   
   // questao -> podemos usar Box3 ou temos que implementar as nossas AABB boxes?
   // "Custom" funcao para verificar colisoes
@@ -451,7 +492,7 @@ function update() {
   // animacao e depois em cada ciclo do update mudamos a posicao do trailer e retornamos logo para nao podermos mexer em nada
   // isto acontece ate chegarmos a posicao que queremos
   
-  if (direita == true || esquerda == true || frente == true || tras == true) {
+  if ((direita || esquerda || frente || tras) && !lock) {
     trailer_x = 0;
     trailer_z = 0;
 
@@ -503,12 +544,10 @@ function update() {
     latBraco = false;
     medBraco = false;
   } else if (rotpesfrente == true || rotpestras == true) {
-    if (rotpesfrente == true && pesesq.rotation.x > minRotationPesX) {
-      pesesq.rotation.x -= angcab;
-      pesdir.rotation.x -= angcab;
-    } else if (rotpestras == true && pesesq.rotation.x < maxRotationPesX) {
-      pesesq.rotation.x += angcab;
-      pesdir.rotation.x += angcab;
+    if (rotpesfrente == true && pes.rotation.x > minRotationPesX) {
+      pes.rotation.x -= angcab;
+    } else if (rotpestras == true && pes.rotation.x < maxRotationPesX) {
+      pes.rotation.x += angcab;
     }
     rotpesfrente = false;
     rotpestras = false;
@@ -530,8 +569,11 @@ function update() {
   } else {
     handleKeyUp;
   }
-  robotBox.setFromObject(robot)
-  trailerBox.setFromObject(trailer)
+
+  
+  
+  //robotBox.setFromObject(robot)
+  //trailerBox.setFromObject(trailer)
 }
 
 /////////////
@@ -569,6 +611,9 @@ function init() {
 /////////////////////
 function animate() {
   "use strict";
+
+  // Criar THREE.Clock
+
   update();
   render(cameras[camera_index]);
 
@@ -711,3 +756,24 @@ function handleKeyUp(event) {
   keys[keyCode] = false;
   onKeyDown();
 }
+
+
+
+
+
+
+
+/*
+ Centroide Camiao (0, 0, 2.5)
+
+Tamanho 4.5 -> x
+        5.5 -> z
+
+
+  Centroide do Reboque (trailer.position.x, 0, trailer.position.y)
+
+  tamanho x -> 2.5
+          z -> 6.5
+
+
+*/
