@@ -10,13 +10,15 @@ var cameras = [],
   scene,
   renderer;
 
-var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna,pes;
+var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna,pesesq,pesdir;
 
-var angcab = Math.PI / 8,
+var angcab = Math.PI / 16,
   maxRotationCabX = Math.PI / 2,
   minRotationCabX = 0,
   maxRotationPernaX = Math.PI / 4,
   minRotationPernaX = -Math.PI / 2,
+  minRotationPesX = -Math.PI / 2,
+  maxRotationPesX = 0
   maxCoord = 4.9,
   minCoord = 3.1;
 
@@ -46,6 +48,8 @@ var rotcabfrente = false,
   rotpernafrente = false,
   rotpernatras = false,
   rotcabtras = false,
+  rotpesfrente = false,
+  rotpestras = false,
   latBraco = false,
   medBraco = false;
 
@@ -103,9 +107,10 @@ function createCamera() {
   perspectiveCamera.lookAt(scene.position);
 
   // Create an orthographic camera
+  const aspectRatio = window.innerWidth / window.innerHeight;
   const orthographicCamera = new THREE.OrthographicCamera(
-    -30,
-    30,
+    -30 * aspectRatio,
+    30 * aspectRatio,
     30,
     -30,
     1,
@@ -147,7 +152,7 @@ function createCamera() {
     1,
     1000
   );
-  cameraZ.position.set(0, 0, 30);
+  cameraZ.position.set(0, 0, -30);
   cameraZ.lookAt(scene.position);
 
   cameras.push(cameraZ);
@@ -341,7 +346,7 @@ function addPernaDir(obj, x, y, z) {
 
   addCoxas(perna, 0, -1, 0);
   addCanela(perna, 0, -4.5, 0);
-  addPes(perna, x-1.5, -7.5, -1);
+  addPesDir(perna, x-1.5, -7.5, 0);
   addWheel(perna, x + 0.25, -3.75, 0);
   addWheel(perna, x + 0.25, -6, 0);
   /*
@@ -358,7 +363,7 @@ function addPernaEsq(obj, x, y, z) {
 
   addCoxas(perna, 0, -1, 0);
   addCanela(perna, 0, -4.5, 0);
-  addPes(perna, x+1.5, -7.5, -1);
+  addPesEsq(perna, x+1.5, -7.5, 0);
   addWheel(perna, x - 0.25, -3.75, 0);
   addWheel(perna, x - 0.25, -6, 0);
   
@@ -381,12 +386,18 @@ function addPernas(obj, x, y, z) {
   obj.add(pernas);
 }
 
-function addPes(obj,x,y,z){
-  geometry = new THREE.BoxGeometry(2, 1, 3);
-  mesh = new THREE.Mesh(geometry,materialgreen);
-  mesh.position.set(x,y,z);
-  obj.add(mesh);
+function addPesEsq(obj,x,y,z){
+  geometry = new THREE.BoxGeometry(2, 1, 2);
+  pesesq = new THREE.Mesh(geometry,materialgreen);
+  pesesq.position.set(x,y,z);
+  obj.add(pesesq);
+}
 
+function addPesDir(obj,x,y,z){
+  geometry = new THREE.BoxGeometry(2, 1, 2);
+  pesdir = new THREE.Mesh(geometry,materialgreen);
+  pesdir.position.set(x,y,z);
+  obj.add(pesdir);
 }
 
 function CreateRobo(x, y, z) {
@@ -491,6 +502,17 @@ function update() {
     }
     latBraco = false;
     medBraco = false;
+  } else if (rotpesfrente == true || rotpestras == true) {
+    if (rotpesfrente == true && pesesq.rotation.x > minRotationPesX) {
+      pesesq.rotation.x -= angcab;
+      pesdir.rotation.x -= angcab;
+    } else if (rotpestras == true && pesesq.rotation.x < maxRotationPesX) {
+      pesesq.rotation.x += angcab;
+      pesdir.rotation.x += angcab;
+    }
+    rotpesfrente = false;
+    rotpestras = false;
+  
   } else if (wirestate == true) {
     materialred.wireframe = !materialred.wireframe;
     materialblue.wireframe = !materialblue.wireframe;
@@ -637,35 +659,37 @@ function onKeyDown() {
       wirestate = true;
       break;
     //-----rotation----------
-    case keys[82]:
-    case keys[104]: //R(r)
+    case keys[82]: //R(r)
       rotcabfrente = true;
       break;
 
-    case keys[70]:
-    case keys[92]: //F(f)
+    case keys[70]: //F(f)
       rotcabtras = true;
       break;
 
-    case keys[87]:
-    case keys[109]: //W(w)
+    case keys[87]: //W(w)
       rotpernafrente = true;
       break;
 
-    case keys[83]:
-    case keys[105]: //S(s)
+    case keys[83]: //S(s)
       rotpernatras = true;
       break;
 
-    case keys[68]:
-    case keys[90]: //D(d)
+    case keys[68]: //D(d)
       latBraco = true;
       break;
 
-    case keys[69]:
-    case keys[91]: //E(e)
+    case keys[69]: //E(e)
       medBraco = true;
       break;
+
+    case keys[65]: //A(a)
+      rotpestras = true;
+      break;
+    
+    case keys[81]: //Q(q)
+      rotpesfrente = true;
+      break; 
   }
 }
 
