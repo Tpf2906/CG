@@ -77,6 +77,7 @@ const centroideCamiao = new THREE.Vector3(0, 0, 2.5);
 // Centroide do Reboque
 var centroideReboque;
 
+var duringAnimation = false;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -549,12 +550,15 @@ function checkCollisions() {
 function handleCollisions() {
   "use strict";
 
+  duringAnimation = true;
+
   var posFinal = new THREE.Vector3(0, 0, 10);
 
   var deltaX = posFinal.x - centroideReboque.x;
   var deltaZ = posFinal.z - centroideReboque.z;
   
   if (Math.abs(deltaX) < 0.01 && Math.abs(deltaZ) < 0.01) {
+    duringAnimation = false;
     return;
   }
 
@@ -781,23 +785,28 @@ function onKeyDown() {
 
     //-------camera-------
     case keys[49]: //Digit1
-      camera_index = 0;
+      if (!duringAnimation)
+        camera_index = 0;
       break;
 
     case keys[50]: //Digit2
-      camera_index = 1;
+      if (!duringAnimation)
+        camera_index = 1;
       break;
 
     case keys[51]: //Digit3
-      camera_index = 2;
+      if (!duringAnimation)  
+        camera_index = 2;
       break;
 
     case keys[52]: //Digit4
-      camera_index = 3;
+      if (!duringAnimation)  
+        camera_index = 3;
       break;
 
     case keys[53]: //Digit5
-      camera_index = 4;
+      if (!duringAnimation)  
+        camera_index = 4;
       break;
 
     case keys[54]: //Digit6
