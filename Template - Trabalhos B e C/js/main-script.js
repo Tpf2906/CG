@@ -20,6 +20,9 @@ var angcab = Math.PI / 8,
   maxCoord = 4.9,
   minCoord = 3.1;
 
+var robotBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+var trailerBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+
 var materialred = new THREE.MeshBasicMaterial({
   color: 0xff0000,
   wireframe: true,
@@ -70,6 +73,11 @@ function createScene() {
   "use strict";
 
   scene = new THREE.Scene();
+  
+  const robothelper = new THREE.Box3Helper( robotBox, 0xffff00 );
+  scene.add( robothelper );
+  const trailerhelper = new THREE.Box3Helper( trailerBox, 0xff00ff );
+  scene.add( trailerhelper );
 
   scene.add(new THREE.AxisHelper(10));
   scene.background = new THREE.Color(0xa9f5ee);
@@ -197,9 +205,9 @@ function CreateTrailer(x, y, z) {
 
   scene.add(trailer);
 
-  trailer.position.x = x;
-  trailer.position.y = y;
-  trailer.position.z = z;
+
+  trailer.position.set(x, y, z);
+  trailerBox.setFromObject(trailer);
 }
 
 function addTronco(obj, x, y, z) {
@@ -245,7 +253,7 @@ function addcranio(obj, x, y, z) {
 
 function addOlho(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
-  material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+  material = new THREE.MeshBasicMaterial(materialblue);
   mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.x += Math.PI / 2;
   mesh.position.set(x, y, z);
@@ -254,7 +262,7 @@ function addOlho(obj, x, y, z) {
 
 function addAntena(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(0.1, 1, 0.5);
-  material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true });
+  material = new THREE.MeshBasicMaterial(materialred);
   mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   obj.add(mesh)
@@ -268,7 +276,6 @@ function addCabeca(obj, x, y, z) {
   addOlho(cabeca, -0.5, 1.5, 0);
   addAntena(cabeca, 1, 2, 1);
   addAntena(cabeca, -1, 2, 1);
-  /*olhos e cornos */
   cabeca.position.set(x, y, z);
   obj.add(cabeca);
 }
@@ -395,13 +402,20 @@ function CreateRobo(x, y, z) {
 
   scene.add(robot);
   robot.position.set(x, y, z);
+  robotBox.setFromObject(robot)
 }
 
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions() {
+function checkCollisions(box, otherBox) {
   "use strict";
+
+  // Doesn't check the y because objects don't move in the y direction.
+  return (
+    box.min.x <= otherBox.max.x && box.max.x >= otherBox.min.x &&
+    box.min.z <= otherBox.max.z && box.max.z >= otherBox.min.z
+    );
 }
 
 ///////////////////////
@@ -416,6 +430,16 @@ function handleCollisions() {
 ////////////
 function update() {
   "use strict";
+  
+  // questao -> podemos usar Box3 ou temos que implementar as nossas AABB boxes?
+  // "Custom" funcao para verificar colisoes
+  // console.log(checkCollisions(trailerBox, robotBox));
+  // Verifica se há colisão mas só o deve fazer quando o Robot está em modo Camião
+  // Boolean que verica se as pecas todas do robot estao para dentro?
+  // Quando detetamos a colisao calculamos a diferenca entre a posicao do centro do trailer e a posicao onde tem que ficar no fim da
+  // animacao e depois em cada ciclo do update mudamos a posicao do trailer e retornamos logo para nao podermos mexer em nada
+  // isto acontece ate chegarmos a posicao que queremos
+  
   if (direita == true || esquerda == true || frente == true || tras == true) {
     trailer_x = 0;
     trailer_z = 0;
@@ -441,9 +465,11 @@ function update() {
     }
 
     if (trailer_x != 0 && trailer_z != 0) {
+
       trailer.position.x += trailer_x * (Math.sqrt(2) / 2);
       trailer.position.z += trailer_z * (Math.sqrt(2) / 2);
     } else {
+
       trailer.position.x += trailer_x * vel;
       trailer.position.z += trailer_z * vel;
     }
@@ -482,6 +508,8 @@ function update() {
   } else {
     handleKeyUp;
   }
+  robotBox.setFromObject(robot)
+  trailerBox.setFromObject(trailer)
 }
 
 /////////////
