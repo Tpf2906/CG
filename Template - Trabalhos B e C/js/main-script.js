@@ -243,10 +243,31 @@ function addcranio(obj, x, y, z) {
   obj.add(mesh);
 }
 
+function addOlho(obj, x, y, z) {
+  geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
+  material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
+  mesh.rotation.x += Math.PI / 2;
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addAntena(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(0.1, 1, 0.5);
+  material = new THREE.MeshBasicMaterial({color: 0xff0000, wireframe: true });
+  mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  obj.add(mesh)
+}
+
 function addCabeca(obj, x, y, z) {
   cabeca = new THREE.Group();
 
   addcranio(cabeca, 0, 1, 1);
+  addOlho(cabeca, 0.5, 1.5, 0);
+  addOlho(cabeca, -0.5, 1.5, 0);
+  addAntena(cabeca, 1, 2, 1);
+  addAntena(cabeca, -1, 2, 1);
   /*olhos e cornos */
   cabeca.position.set(x, y, z);
   obj.add(cabeca);
