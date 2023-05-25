@@ -11,16 +11,17 @@ var robot;
 var upperBody;
 var head;
 var righArm, leftArm;
-
 var leg, legs, feet;
 
-var angcab = Math.PI / 16,
-  maxRotationCabX = Math.PI / 2,
-  minRotationCabX = 0,
-  maxRotationPernaX = Math.PI / 4,
-  minRotationPernaX = -Math.PI / 2,
-  minRotationPesX = -Math.PI / 2,
-  maxRotationPesX = 0
+var time, delta;
+
+var velRotation = Math.PI / 2,
+  maxHeadRotation = Math.PI / 2,
+  minHeadRotation = 0,
+  maxLegRotation = Math.PI / 4,
+  minLegRotation = -Math.PI / 2,
+  minFootRotation = -Math.PI / 2,
+  maxFootRotation = 0
   maxCoord = 4.9,
   minCoord = 3.1;
 
@@ -45,14 +46,14 @@ var materialblack = new THREE.MeshBasicMaterial({
 
 var wirestate = false;
 
-var rotcabfrente = false,
-  rotpernafrente = false,
-  rotpernatras = false,
-  rotcabtras = false,
-  rotpesfrente = false,
-  rotpestras = false,
-  latBraco = false,
-  medBraco = false;
+var headForwardRotation = false,
+  legForwardRotation = false,
+  legBackRotation = false,
+  headBackRotation = false,
+  footForwardRotation = false,
+  footBackRotation = false,
+  armLat = false,
+  armMed = false;
 
 var geometry,
   material = [],
@@ -60,15 +61,13 @@ var geometry,
 
 var keys = {};
 
-var direita = false,
-  esquerda = false,
-  frente = false,
-  tras = false;
+var moveRight = false,
+    moveLeft = false,
+    moveForward = false,
+    moveBack = false;
 
-var vel = 1,
-  trailer_x,
-  trailer_z;
-
+var trailerVel = 7.5, trailer_x = 0, trailer_z = 0;
+var velArm = 5;
 
 
 /////////////////////
@@ -223,11 +222,11 @@ function createTrailer(x, y, z) {
   addTrailerBox(trailer, 0, 0, 0);
 
   // Rodas de Tras
-  addWheel(trailer,  2, -3.5,  4.5);
-  addWheel(trailer, -2, -3.5,  4.5);
+  addWheel(trailer,  1.75, -3.5,  4.5);
+  addWheel(trailer, -1.75, -3.5,  4.5);
   // Rodas da Frente
-  addWheel(trailer,  2, -3.5, 2.25);
-  addWheel(trailer, -2, -3.5, 2.25);
+  addWheel(trailer,  1.75, -3.5, 2.25);
+  addWheel(trailer, -1.75, -3.5, 2.25);
 
   addTrailerConnector(trailer, 0, -2.75, -3.5);
 
@@ -278,8 +277,8 @@ function addUpperBody(obj, x, y, z) {
 
   addWaist(upperBody,   0,  -4, 0);
 
-  addWheel(upperBody,   3,  -4, 0);
-  addWheel(upperBody,  -3,  -4, 0);
+  addWheel(upperBody,   3,  -4.5, 0);
+  addWheel(upperBody,  -3,  -4.5, 0);
 
   upperBody.position.set(x, y, z);
 
@@ -449,8 +448,8 @@ function addFoot(obj,x,y,z){
 function addFeet(obj, x, y, z) {
   feet = new THREE.Group();
   
-  addFoot(feet, 1.25, 0, -0.25);
-  addFoot(feet, -1.5, 0, -0.25);
+  addFoot(feet, 1.25, -0.5, 0);
+  addFoot(feet, -1.25, -0.5, 0);
   
   feet.position.set(x, y, z);
   obj.add(feet);
@@ -463,11 +462,11 @@ function addFeet(obj, x, y, z) {
 function addLegs(obj, x, y, z) {
   legs = new THREE.Group();
   
-  addRightLeg(legs, 1.25,    0,     0);
+  addRightLeg(legs, 1.25,   -1,      0);
   
-  addLeftLeg(legs, -1.25,    0,     0);
+  addLeftLeg(legs, -1.25,   -1,      0);
   
-  addFeet(legs,        0, -6.5,     0);
+  addFeet(legs,        0,   -7,  -0.25);
   
   legs.position.set(x, y, z);
   
@@ -490,7 +489,7 @@ function createRobot(x, y, z) {
   addRightArm(robot,  5,   0,  2);
   addLeftArm(robot,  -5,   0,  2);
   
-  addLegs(robot,        0,   -5.5,  0);
+  addLegs(robot,        0,   -4.5,  0);
   
   robot.position.set(x, y, z);
 
@@ -562,65 +561,75 @@ function update() {
   // animacao e depois em cada ciclo do update mudamos a posicao do trailer e retornamos logo para nao podermos mexer em nada
   // isto acontece ate chegarmos a posicao que queremos
   
-  if ((direita || esquerda || frente || tras) && !lock) {
+  
+  if ((moveRight || moveLeft || moveForward || moveBack) && !lock) {
+
     trailer_x = 0;
     trailer_z = 0;
 
-    if (direita == true) {
-      trailer_x += 0.1;
-      direita = false;
-    }
+    if (moveRight) {
+        trailer_x += 1;
+        moveRight = false;
+      } 
 
-    if (esquerda == true) {
-      trailer_x -= 0.1;
-      esquerda = false;
-    }
+    if (moveLeft) {
+        trailer_x += -1
+        moveLeft = false;
+      }
 
-    if (frente == true) {
-      trailer_z += 0.1;
-      frente = false;
-    }
+    if (moveForward) {
+        trailer_z += -1;
+        moveForward = false;
+      }
 
-    if (tras == true) {
-      trailer_z -= 0.1;
-      tras = false;
-    }
-
+    if (moveBack) {
+        trailer_z += 1;
+        moveBack = false;
+      }
+  
     if (trailer_x != 0 && trailer_z != 0) {
 
-      trailer.position.x += trailer_x * (Math.sqrt(2) / 2);
-      trailer.position.z += trailer_z * (Math.sqrt(2) / 2);
+      trailer.position.x += trailer_x * ((trailerVel/Math.sqrt(2)) * delta); 
+      trailer.position.z += trailer_z * ((trailerVel/Math.sqrt(2)) * delta);
+    
     } else {
+      trailer.position.x += trailer_x * trailerVel * delta;
+      trailer.position.z += trailer_z * trailerVel * delta;
+    }
+  } else if (headForwardRotation == true || headBackRotation == true) {
 
-      trailer.position.x += trailer_x * vel;
-      trailer.position.z += trailer_z * vel;
+    if (headForwardRotation == true && head.rotation.x > minHeadRotation) {
+      head.rotation.x -= velRotation * delta;
+    } else if (headBackRotation == true && head.rotation.x < maxHeadRotation) {
+      head.rotation.x += velRotation * delta;
     }
-  } else if (rotcabfrente == true || rotcabtras == true) {
-    if (rotcabfrente == true && head.rotation.x > minRotationCabX) {
-      head.rotation.x -= angcab;
-    } else if (rotcabtras == true && head.rotation.x < maxRotationCabX) {
-      head.rotation.x += angcab;
+
+    headBackRotation = false;
+    headForwardRotation = false;
+
+  } else if (armLat == true || armMed == true) {
+
+    if (armLat == true && rightArm.position.x <= maxCoord) {
+      rightArm.position.x += velArm * delta;
+      leftArm.position.x -= velArm * delta;
+    } else if (armMed == true && rightArm.position.x >= minCoord) {
+      rightArm.position.x -= velArm * delta;
+      leftArm.position.x += velArm * delta;
     }
-    rotcabtras = false;
-    rotcabfrente = false;
-  } else if (latBraco == true || medBraco == true) {
-    if (latBraco == true && leftArm.position.x <= maxCoord) {
-      rightArm.position.x -= 0.1;
-      leftArm.position.x += 0.1;
-    } else if (medBraco == true && leftArm.position.x >= minCoord) {
-      rightArm.position.x += 0.1;
-      leftArm.position.x -= 0.1;
+
+    armLat = false;
+    armMed = false;
+    
+  } else if (footForwardRotation == true || footBackRotation == true) {
+
+    if (footForwardRotation == true && feet.rotation.x > minFootRotation) {
+      feet.rotation.x -= velRotation * delta;
+    } else if (footBackRotation == true && feet.rotation.x < maxFootRotation) {
+      feet.rotation.x += velRotation * delta;
     }
-    latBraco = false;
-    medBraco = false;
-  } else if (rotpesfrente == true || rotpestras == true) {
-    if (rotpesfrente == true && feet.rotation.x > minRotationPesX) {
-      feet.rotation.x -= angcab;
-    } else if (rotpestras == true && feet.rotation.x < maxRotationPesX) {
-      feet.rotation.x += angcab;
-    }
-    rotpesfrente = false;
-    rotpestras = false;
+
+    footForwardRotation = false;
+    footBackRotation = false;
   
   } else if (wirestate == true) {
     materialred.wireframe = !materialred.wireframe;
@@ -628,14 +637,17 @@ function update() {
     materialgreen.wireframe = !materialgreen.wireframe;
     materialblack.wireframe = !materialblack.wireframe;
     wirestate = false;
-  } else if (rotpernafrente == true || rotpernatras == true) {
-    if (rotpernafrente == true && legs.rotation.x > minRotationPernaX) {
-      legs.rotation.x -= angcab;
-    } else if (rotpernatras == true && legs.rotation.x < maxRotationPernaX) {
-      legs.rotation.x += angcab;
+  } else if (legForwardRotation == true || legBackRotation == true) {
+
+    if (legForwardRotation == true && legs.rotation.x > minLegRotation) {
+      legs.rotation.x -= velRotation * delta;
+    } else if (legBackRotation == true && legs.rotation.x < maxLegRotation) {
+      legs.rotation.x += velRotation * delta;
     }
-    rotpernafrente = false;
-    rotpernatras = false;
+
+    legForwardRotation = false;
+    legBackRotation = false;
+
   } else {
     handleKeyUp;
   }
@@ -671,6 +683,8 @@ function init() {
 
   render(cameras[camera_index]);
 
+  time = new THREE.Clock();
+
   window.addEventListener("keydown", handleKeyDown);
   window.addEventListener("keyup", handleKeyUp);
   window.addEventListener("resize", onResize);
@@ -682,7 +696,7 @@ function init() {
 function animate() {
   "use strict";
 
-  // Criar THREE.Clock
+  delta = time.getDelta()
 
   update();
 
@@ -707,48 +721,51 @@ function onResize() {
   }
 }
 
-///////////////////////
-/* KEY DOWN CALLBACK */
-///////////////////////
+////////////////////////
+/* KEY PRESS CALLBACK */
+////////////////////////
+
 function onKeyDown() {
   "use strict";
-  //-------trailer movement-------
+
   switch (true) {
+    //-------TRAILER MOVEMENT-------//
+    // 3 KEYS PRESSED
     case keys[38] && keys[39]: //ArrowUp and ArrowRight
-      frente = true;
-      direita = true;
+      moveForward = true;
+      moveRight = true;
       break;
 
     case keys[38] && keys[37]: //ArrowUp and ArrowLeft
-      frente = true;
-      esquerda = true;
+      moveForward = true;
+      moveLeft = true;
       break;
 
     case keys[40] && keys[39]: //ArrowDown and ArrowRight
-      tras = true;
-      direita = true;
+      moveBack = true;
+      moveRight = true;
       break;
 
     case keys[40] && keys[37]: //ArrowDown and ArrowLeft
-      tras = true;
-      esquerda = true;
+      moveBack = true;
+      moveLeft = true;
       break;
-
     case keys[37]: //ArrowLeft
-      esquerda = true;
+      moveLeft = true;
       break;
 
     case keys[39]: //ArrowRight
-      direita = true;
+      moveRight = true;
       break;
 
     case keys[40]: //ArrowDown
-      tras = true;
+      moveBack = true;
       break;
 
     case keys[38]: //ArrowUp
-      frente = true;
+      moveForward = true;
       break;
+
 
     //-------camera-------
     case keys[49]: //Digit1
@@ -776,46 +793,39 @@ function onKeyDown() {
       break;
     //-----rotation----------
     case keys[82]: //R(r)
-      rotcabfrente = true;
+      headForwardRotation = true;
       break;
 
     case keys[70]: //F(f)
-      rotcabtras = true;
+      headBackRotation = true;
       break;
 
     case keys[87]: //W(w)
-      rotpernafrente = true;
+      legForwardRotation = true;
       break;
 
     case keys[83]: //S(s)
-      rotpernatras = true;
+      legBackRotation = true;
       break;
 
     case keys[68]: //D(d)
-      latBraco = true;
+      armLat = true;
       break;
 
     case keys[69]: //E(e)
-      medBraco = true;
+      armMed = true;
       break;
 
     case keys[65]: //A(a)
-      rotpestras = true;
+      footBackRotation = true;
       break;
     
     case keys[81]: //Q(q)
-      rotpesfrente = true;
+      footForwardRotation = true;
       break; 
   }
 }
 
-///////////////////////
-/* KEY UP CALLBACK */
-///////////////////////
-/*function onKeyUp(e){
-    'use strict';
-
-}*/
 function handleKeyDown(event) {
   var keyCode = event.keyCode;
   keys[keyCode] = true;
@@ -827,12 +837,6 @@ function handleKeyUp(event) {
   keys[keyCode] = false;
   onKeyDown();
 }
-
-
-
-
-
-
 
 /*
  Centroide Camiao (0, 0, 2.5)
