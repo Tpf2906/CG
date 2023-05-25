@@ -1,16 +1,18 @@
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-var cameras = [],
-  cameraX,
-  cameraY,
-  cameraZ,
-  perspectiveCamera,
-  orthographicCamera,
-  scene,
-  renderer;
+var cameras = [];
+var cameraX, cameraY, cameraZ, perspectiveCamera, orthographicCamera;
+var camera_index;
+var scene, renderer;
 
-var trailer, robot, pernas, bracoDir, bracoEsq, cabeca, torco, perna,pesesq,pesdir, pes, box;
+var trailer;
+var robot;
+var upperBody;
+var head;
+var righArm, leftArm;
+
+var leg, legs, feet;
 
 var angcab = Math.PI / 16,
   maxRotationCabX = Math.PI / 2,
@@ -23,9 +25,6 @@ var angcab = Math.PI / 16,
   minCoord = 3.1;
 
 var lock = false;
-
-var robotBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-var trailerBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
 var materialred = new THREE.MeshBasicMaterial({
   color: 0xff0000,
@@ -70,7 +69,7 @@ var vel = 1,
   trailer_x,
   trailer_z;
 
-var camera_index;
+
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -80,16 +79,15 @@ function createScene() {
 
   scene = new THREE.Scene();
   
-  const robothelper = new THREE.Box3Helper( robotBox, 0xffff00 );
-  scene.add( robothelper );
-  const trailerhelper = new THREE.Box3Helper( trailerBox, 0xff00ff );
-  scene.add( trailerhelper );
-
   scene.add(new THREE.AxisHelper(10));
+  
+  // Background
   scene.background = new THREE.Color(0xa9f5ee);
 
-  CreateRobo(0, 0, 0);
-  CreateTrailer(0, 0, 15);
+  // Create the Robot at (0,0,0)
+  createRobot(0, 0, 0);
+  // Create the Trailer at (0,0,15)
+  //createTrailer(0, 0, 15);
 }
 
 //////////////////////
@@ -97,54 +95,8 @@ function createScene() {
 //////////////////////
 function createCamera() {
   "use strict";
-  
-  // Create a perspective camera
-  const perspectiveCamera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  perspectiveCamera.position.set(20, 20, 20);
-  perspectiveCamera.lookAt(scene.position);
 
-  // Create an orthographic camera
-  const aspectRatio = window.innerWidth / window.innerHeight;
-  const orthographicCamera = new THREE.OrthographicCamera(
-    -30 * aspectRatio,
-    30 * aspectRatio,
-    30,
-    -30,
-    1,
-    1000
-  );
-  orthographicCamera.position.set(20, 20, 20);
-  orthographicCamera.lookAt(scene.position);
-
-  // Create a camera aligned with the X axis
-  const cameraX = new THREE.OrthographicCamera(
-    window.innerWidth / -40,
-    window.innerWidth / 40,
-    window.innerHeight / 40,
-    window.innerHeight / -40,
-    1,
-    1000
-  );
-  cameraX.position.set(30, 0, 0);
-  cameraX.lookAt(scene.position);
-
-  // Create a camera aligned with the Y axis
-  const cameraY = new THREE.OrthographicCamera(
-    window.innerWidth / -40,
-    window.innerWidth / 40,
-    window.innerHeight / -40,
-    window.innerHeight / 40,
-    1,
-    1000
-  );
-  cameraY.position.set(0, 30, 0);
-  cameraY.lookAt(scene.position);
-
+  // Camera Frontal
   // Create a camera aligned with the Z axis
   const cameraZ = new THREE.OrthographicCamera(
     window.innerWidth / -40,
@@ -158,32 +110,80 @@ function createCamera() {
   cameraZ.lookAt(scene.position);
 
   cameras.push(cameraZ);
-  cameras.push(cameraY);
-  cameras.push(cameraX);
-  cameras.push(orthographicCamera);
-  cameras.push(perspectiveCamera);
-
-  scene.add(perspectiveCamera);
-  scene.add(orthographicCamera);
-  scene.add(cameraX);
-  scene.add(cameraY);
   scene.add(cameraZ);
-}
+  
+  // Camera Lateral
+  // Create a camera aligned with the X axis
+  const cameraX = new THREE.OrthographicCamera(
+    window.innerWidth / -40,
+    window.innerWidth / 40,
+    window.innerHeight / 40,
+    window.innerHeight / -40,
+    1,
+    1000
+  );
+  cameraX.position.set(30, 0, 0);
+  cameraX.lookAt(scene.position);
 
-/////////////////////
-/* CREATE LIGHT(S) */
-/////////////////////
+  cameras.push(cameraX);
+  scene.add(cameraX);
+  
+  // Camera Topo
+  // Create a camera aligned with the Y axis
+  const cameraY = new THREE.OrthographicCamera(
+    window.innerWidth / -40,
+    window.innerWidth / 40,
+    window.innerHeight / -40,
+    window.innerHeight / 40,
+    1,
+    1000
+  );
+  cameraY.position.set(0, 30, 0);
+  cameraY.lookAt(scene.position);
+
+  cameras.push(cameraY);
+  scene.add(cameraY);
+
+  // Perspetiva Isometrica
+  // Create an orthographic camera
+  const aspectRatio = window.innerWidth / window.innerHeight;
+  const orthographicCamera = new THREE.OrthographicCamera(
+    -30 * aspectRatio,
+    30 * aspectRatio,
+    30,
+    -30,
+    1,
+    1000
+  );
+  orthographicCamera.position.set(20, 20, 20);
+  orthographicCamera.lookAt(scene.position);
+  
+  cameras.push(orthographicCamera);
+  scene.add(orthographicCamera);
+
+  // Perspetiva Isometrica
+  // Create a perspective camera
+  const perspectiveCamera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+  perspectiveCamera.position.set(20, 20, 20);
+  perspectiveCamera.lookAt(scene.position);
+  
+  cameras.push(perspectiveCamera);
+  scene.add(perspectiveCamera);
+
+}
 
 ////////////////////////
 /* CREATE OBJECT3D(S) */
 ////////////////////////
-function addBox(obj, x, y, z) {
-  geometry = new THREE.BoxGeometry(5, 5, 13);
-  box = new THREE.Mesh(geometry, materialgreen);
-  box.position.set(x, y, z);
-  box.name = "box"
-  obj.add(box);
-}
+
+////      ////
+//// RODA ////
+////      ////
 
 function addWheel(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(1, 1, 1.5, 32);
@@ -193,32 +193,62 @@ function addWheel(obj, x, y, z) {
   obj.add(mesh);
 }
 
-function addConnector(obj, x, y, z) {
+////      ////
+//// RODA ////
+////      ////
+
+////         ////  
+//// TRAILER ////
+////         ////
+
+function addTrailerBox(obj, x, y, z) {
+  geometry = new THREE.BoxGeometry(5, 5, 13);
+  mesh = new THREE.Mesh(geometry, materialgreen);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addTrailerConnector(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.5, 32);
   mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
-function CreateTrailer(x, y, z) {
+function createTrailer(x, y, z) {
   "use strict";
 
   trailer = new THREE.Object3D();
-  addBox(trailer, 0, 4.5, 0);
-  addWheel(trailer, 2, 1, 4.5);
-  addWheel(trailer, 2, 1, 2.25);
-  addWheel(trailer, -2, 1, 2.25);
-  addWheel(trailer, -2, 1, 4.5);
-  addConnector(trailer, 0, 1.75, -3.5);
 
-  scene.add(trailer);
+  addTrailerBox(trailer, 0, 0, 0);
 
+  // Rodas de Tras
+  addWheel(trailer,  2, -3.5,  4.5);
+  addWheel(trailer, -2, -3.5,  4.5);
+  // Rodas da Frente
+  addWheel(trailer,  2, -3.5, 2.25);
+  addWheel(trailer, -2, -3.5, 2.25);
+
+  addTrailerConnector(trailer, 0, -2.75, -3.5);
 
   trailer.position.set(x, y, z);
-  trailerBox.setFromObject(trailer);
+  
+  scene.add(trailer);
 }
 
-function addTronco(obj, x, y, z) {
+////         ////  
+//// TRAILER ////
+////         ////
+
+////       ////
+//// ROBOT ////
+////       ////
+
+////            ////
+//// Upper Body ////
+////            ////
+
+function addChest(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(8, 3, 6);
   mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
@@ -232,37 +262,48 @@ function addAbdomen(obj, x, y, z) {
   obj.add(mesh);
 }
 
-function addCintura(obj, x, y, z) {
+function addWaist(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(4.5, 1, 6);
   mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
-function addTorco(obj, x, y, z) {
-  torco = new THREE.Group();
+function addUpperBody(obj, x, y, z) {
+  upperBody = new THREE.Group();
 
-  addTronco(torco, 0, 5.5, 0);
-  addAbdomen(torco, 0, 3, 0);
-  addCintura(torco, 0, 1.5, 0);
-  addWheel(torco, 3, 1, 0);
-  addWheel(torco, -3, 1, 0);
-  torco.position.set(x, y, z);
+  addChest(upperBody,   0,   0, 0);
 
-  obj.add(torco);
+  addAbdomen(upperBody, 0,-2.5, 0);
+
+  addWaist(upperBody,   0,  -4, 0);
+
+  addWheel(upperBody,   3,  -4, 0);
+  addWheel(upperBody,  -3,  -4, 0);
+
+  upperBody.position.set(x, y, z);
+
+  obj.add(upperBody);
 }
 
-function addcranio(obj, x, y, z) {
+////            ////
+//// Upper Body ////
+////            ////
+
+////      ////
+//// Head ////
+////      ////
+
+function addSkull(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(2, 2, 2);
   mesh = new THREE.Mesh(geometry, materialgreen);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
-function addOlho(obj, x, y, z) {
+function addEye(obj, x, y, z) {
   geometry = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
-  material = new THREE.MeshBasicMaterial(materialblue);
-  mesh = new THREE.Mesh(geometry, material);
+  mesh = new THREE.Mesh(geometry, materialblue);
   mesh.rotation.x += Math.PI / 2;
   mesh.position.set(x, y, z);
   obj.add(mesh);
@@ -270,32 +311,43 @@ function addOlho(obj, x, y, z) {
 
 function addAntena(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(0.1, 1, 0.5);
-  material = new THREE.MeshBasicMaterial(materialred);
-  mesh = new THREE.Mesh(geometry, material);
+  mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
   obj.add(mesh)
 }
 
-function addCabeca(obj, x, y, z) {
-  cabeca = new THREE.Group();
+function addHead(obj, x, y, z) {
+  head = new THREE.Group();
 
-  addcranio(cabeca, 0, 1, 1);
-  addOlho(cabeca, 0.5, 1.5, 0);
-  addOlho(cabeca, -0.5, 1.5, 0);
-  addAntena(cabeca, 1, 2, 1);
-  addAntena(cabeca, -1, 2, 1);
-  cabeca.position.set(x, y, z);
-  obj.add(cabeca);
+  addSkull(head,    0,   1, 1);
+  
+  addEye(head,    0.5, 1.5, 0);
+  addEye(head,   -0.5, 1.5, 0);
+  
+  addAntena(head,   1,   2, 1);
+  addAntena(head,  -1,   2, 1);
+  
+  head.position.set(x, y, z);
+  
+  obj.add(head);
 }
 
-function addBraco(obj, x, y, z) {
+////      ////
+//// Head ////
+////      ////
+
+////     ////
+//// Arm ////
+////     ////
+
+function addArm(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(2, 3, 2);
   mesh = new THREE.Mesh(geometry, materialblue);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
-function addAntebraco(obj, x, y, z) {
+function addForearm(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(2, 2, 6);
   mesh = new THREE.Mesh(geometry, materialgreen);
   mesh.position.set(x, y, z);
@@ -309,28 +361,39 @@ function addEscape(obj, x, y, z) {
   obj.add(mesh);
 }
 
-function addBracoDir(obj, x, y, z) {
-  bracoDir = new THREE.Group();
+function addRightArm(obj, x, y, z) {
+  rightArm = new THREE.Group();
 
-  addBraco(bracoDir, 0, 0.5, 3);
-  addAntebraco(bracoDir, 0, -2, 1);
-  addEscape(bracoDir, -1.25, 1, 3);
-  bracoDir.position.set(x, y, z);
-  obj.add(bracoDir);
+  addArm(rightArm,        0,    0,  0);
+  addForearm(rightArm,    0, -2.5, -2);
+  addEscape(rightArm,  1.25,    1,  0);
+  
+  rightArm.position.set(x, y, z);
+  
+  obj.add(rightArm);
 }
 
-function addBracoESq(obj, x, y, z) {
-  bracoEsq = new THREE.Group();
+function addLeftArm(obj, x, y, z) {
+  leftArm = new THREE.Group();
 
-  addBraco(bracoEsq, 0, 0.5, 3);
-  addAntebraco(bracoEsq, 0, -2, 1);
-  addEscape(bracoEsq, 1.25, 1, 3);
+  addArm(leftArm,        0,    0,  0);
+  addForearm(leftArm,    0, -2.5, -2);
+  addEscape(leftArm, -1.25,    1,  0);
 
-  bracoEsq.position.set(x, y, z);
-  obj.add(bracoEsq);
+  leftArm.position.set(x, y, z);
+
+  obj.add(leftArm);
 }
 
-function addCoxas(obj, x, y, z) {
+////     ////
+//// Arm ////
+////     ////
+
+////      ////
+//// Legs ////
+////      ////
+
+function addThigh(obj, x, y, z) {
   geometry = new THREE.BoxGeometry(1, 2, 1);
   mesh = new THREE.Mesh(geometry, materialred);
   mesh.position.set(x, y, z);
@@ -344,96 +407,103 @@ function addCanela(obj, x, y, z) {
   obj.add(mesh);
 }
 
-function addPernaDir(obj, x, y, z) {
-  perna = new THREE.Group();
+function addRightLeg(obj, x, y, z) {
+  leg = new THREE.Group();
 
-  addCoxas(perna, 0, -1, 0);
-  addCanela(perna, 0, -4.5, 0);
-  //addPesDir(perna, -3, -7.5, 0);
-  addWheel(perna, 1.75, -3.75, 0);
-  addWheel(perna, 1.75, -6, 0);
-  /*
-  addCoxas
-  addcanela
-  addwhell
-  */
-  perna.position.set(x, y, z);
-  obj.add(perna);
-}
-
-function addPernaEsq(obj, x, y, z) {
-  perna = new THREE.Group();
-
-  addCoxas(perna, 0, -1, 0);
-  addCanela(perna, 0, -4.5, 0);
-  //addPesEsq(perna, 3, -7.5, 0);
-  addWheel(perna, -1.75, -3.75, 0);
-  addWheel(perna, -1.75, -6, 0);
+  addThigh(leg,  0,       0, 0);
+  addCanela(leg, 0,    -3.5, 0);
   
-  /*
-  addCoxas
-  addcanela
-  addwhell
-  */
-  perna.position.set(x, y, z);
-  obj.add(perna);
-}
-
-function addPes(obj, x, y, z) {
-  pes = new THREE.Group();
-
-  addPesDir(pes, 1.5, -0.5, 0);
-  addPesEsq(pes, -1.5, -0.5, 0);
-
-  pes.position.set(x, y, z);
-  obj.add(pes);
-}
-
-function addPernas(obj, x, y, z) {
-  pernas = new THREE.Group();
+  addWheel(leg, 1.75, -2.75, 0);
+  addWheel(leg, 1.75,    -5, 0);
   
+  leg.position.set(x, y, z);
 
-  addPernaDir(pernas, 1.5, 0, 0);
-  addPernaEsq(pernas, -1.5, 0, 0);
-  addPes(pernas, 0, -7, -0.25);
-  pernas.position.set(x, y, z);
-  obj.add(pernas);
+  obj.add(leg);
 }
 
-function addPesEsq(obj,x,y,z){
+function addLeftLeg(obj, x, y, z) {
+  leg = new THREE.Group();
+
+  addThigh(leg,   0,       0, 0);
+  addCanela(leg,  0,    -3.5, 0);
+  
+  addWheel(leg, -1.75, -2.75, 0);
+  addWheel(leg, -1.75,    -5, 0);
+
+  leg.position.set(x, y, z);
+
+  obj.add(leg);
+}
+
+////      ////
+//// Feet ////
+////      ////
+
+function addFoot(obj,x,y,z){
   geometry = new THREE.BoxGeometry(2, 1, 2);
-  pesesq = new THREE.Mesh(geometry,materialgreen);
-  pesesq.position.set(x,y,z);
-  obj.add(pesesq);
+  mesh = new THREE.Mesh(geometry,materialgreen);
+  mesh.position.set(x,y,z);
+  obj.add(mesh);
 }
 
-function addPesDir(obj,x,y,z){
-  geometry = new THREE.BoxGeometry(2, 1, 2);
-  pesdir = new THREE.Mesh(geometry,materialgreen);
-  pesdir.position.set(x,y,z);
-  obj.add(pesdir);
+function addFeet(obj, x, y, z) {
+  feet = new THREE.Group();
+  
+  addFoot(feet, 1.25, 0, -0.25);
+  addFoot(feet, -1.5, 0, -0.25);
+  
+  feet.position.set(x, y, z);
+  obj.add(feet);
 }
 
-function CreateRobo(x, y, z) {
+////      ////
+//// Feet ////
+////      ////
+
+function addLegs(obj, x, y, z) {
+  legs = new THREE.Group();
+  
+  addRightLeg(legs, 1.25,    0,     0);
+  
+  addLeftLeg(legs, -1.25,    0,     0);
+  
+  addFeet(legs,        0, -6.5,     0);
+  
+  legs.position.set(x, y, z);
+  
+  obj.add(legs);
+}
+
+////      ////
+//// Legs ////
+////      ////
+
+function createRobot(x, y, z) {
   "use strict";
 
   robot = new THREE.Object3D();
 
-  addTorco(robot, 0, 0, 0);
-  addCabeca(robot, 0, 7, -1);
-  addBracoDir(robot, -5, 5, -1);
-  addBracoESq(robot, 5, 5, -1);
-  addPernas(robot, 0, 1, 0);
+  addUpperBody(robot, 0,   0,  0);
   
+  addHead(robot,      0, 1.5, -1);
+  
+  addRightArm(robot,  5,   0,  2);
+  addLeftArm(robot,  -5,   0,  2);
+  
+  addLegs(robot,        0,   -5.5,  0);
+  
+  robot.position.set(x, y, z);
 
   scene.add(robot);
-  robot.position.set(x, y, z);
-  robotBox.setFromObject(robot)
 }
 
+////       ////
+//// ROBOT ////
+////       ////
+
 function isCamiao() {
-  // if (cabeca.rotation.x == maxRotationCabX &&
-  //     bracoEsq.position.x == minCoord &&
+  // if (head.rotation.x == maxRotationCabX &&
+  //     leftArm.position.x == minCoord &&
   //     )
 }
 
@@ -475,14 +545,14 @@ function handleCollisions() {
 function update() {
   "use strict";
   // Usar delta time do js nativo
-
+  /*
   if (isCamiao()) {
     if (checkCollisions()) {
       handleCollisions();
     }
   }
   console.log(checkCollisions())
-  
+  */
   // questao -> podemos usar Box3 ou temos que implementar as nossas AABB boxes?
   // "Custom" funcao para verificar colisoes
   // console.log(checkCollisions(trailerBox, robotBox));
@@ -526,28 +596,28 @@ function update() {
       trailer.position.z += trailer_z * vel;
     }
   } else if (rotcabfrente == true || rotcabtras == true) {
-    if (rotcabfrente == true && cabeca.rotation.x > minRotationCabX) {
-      cabeca.rotation.x -= angcab;
-    } else if (rotcabtras == true && cabeca.rotation.x < maxRotationCabX) {
-      cabeca.rotation.x += angcab;
+    if (rotcabfrente == true && head.rotation.x > minRotationCabX) {
+      head.rotation.x -= angcab;
+    } else if (rotcabtras == true && head.rotation.x < maxRotationCabX) {
+      head.rotation.x += angcab;
     }
     rotcabtras = false;
     rotcabfrente = false;
   } else if (latBraco == true || medBraco == true) {
-    if (latBraco == true && bracoEsq.position.x <= maxCoord) {
-      bracoDir.position.x -= 0.1;
-      bracoEsq.position.x += 0.1;
-    } else if (medBraco == true && bracoEsq.position.x >= minCoord) {
-      bracoDir.position.x += 0.1;
-      bracoEsq.position.x -= 0.1;
+    if (latBraco == true && leftArm.position.x <= maxCoord) {
+      rightArm.position.x -= 0.1;
+      leftArm.position.x += 0.1;
+    } else if (medBraco == true && leftArm.position.x >= minCoord) {
+      rightArm.position.x += 0.1;
+      leftArm.position.x -= 0.1;
     }
     latBraco = false;
     medBraco = false;
   } else if (rotpesfrente == true || rotpestras == true) {
-    if (rotpesfrente == true && pes.rotation.x > minRotationPesX) {
-      pes.rotation.x -= angcab;
-    } else if (rotpestras == true && pes.rotation.x < maxRotationPesX) {
-      pes.rotation.x += angcab;
+    if (rotpesfrente == true && feet.rotation.x > minRotationPesX) {
+      feet.rotation.x -= angcab;
+    } else if (rotpestras == true && feet.rotation.x < maxRotationPesX) {
+      feet.rotation.x += angcab;
     }
     rotpesfrente = false;
     rotpestras = false;
@@ -559,10 +629,10 @@ function update() {
     materialblack.wireframe = !materialblack.wireframe;
     wirestate = false;
   } else if (rotpernafrente == true || rotpernatras == true) {
-    if (rotpernafrente == true && pernas.rotation.x > minRotationPernaX) {
-      pernas.rotation.x -= angcab;
-    } else if (rotpernatras == true && pernas.rotation.x < maxRotationPernaX) {
-      pernas.rotation.x += angcab;
+    if (rotpernafrente == true && legs.rotation.x > minRotationPernaX) {
+      legs.rotation.x -= angcab;
+    } else if (rotpernatras == true && legs.rotation.x < maxRotationPernaX) {
+      legs.rotation.x += angcab;
     }
     rotpernafrente = false;
     rotpernatras = false;
@@ -597,7 +667,7 @@ function init() {
 
   createScene();
   createCamera();
-  camera_index = 4;
+  camera_index = 1;
 
   render(cameras[camera_index]);
 
@@ -615,6 +685,7 @@ function animate() {
   // Criar THREE.Clock
 
   update();
+
   render(cameras[camera_index]);
 
   requestAnimationFrame(animate);
@@ -685,11 +756,11 @@ function onKeyDown() {
       break;
 
     case keys[50]: //Digit2
-      camera_index = 2;
+      camera_index = 1;
       break;
 
     case keys[51]: //Digit3
-      camera_index = 1;
+      camera_index = 2;
       break;
 
     case keys[52]: //Digit4
