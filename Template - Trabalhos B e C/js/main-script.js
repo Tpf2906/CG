@@ -666,7 +666,7 @@ function update() {
     legBackRotation = false;
 
   } else if (reset) {
-    trailer.position.set(0, 0, 15);
+    trailer.position.set(0, -0.9, 15);
     lock = false;
     reset = false;
   } else {
